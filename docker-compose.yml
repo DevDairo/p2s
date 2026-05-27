@@ -1,0 +1,120 @@
+services:
+
+  # ── Flask API ────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musicflow_api
+    command: python -m flask run --host=0.0.0.0 --port=5001 --reload
+    env_file: .env
+    environment:
+      - FLASK_APP=app:create_app
+      - FLASK_ENV=development
+    volumes:
+      - .:/app                          # Hot reload: cambios en código se reflejan al instante
+      - music_files:/app/static/musica  # Archivos de audio persistentes
+    ports:
+      - "5001:5001"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Worker (descargas) ────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musicflow_worker
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=3 -Q downloads
+    env_file: .env
+    volumes:
+      - .:/app
+      - music_files:/app/static/musica
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Beat (tareas periódicas: limpieza, etc.) ──────────────────────────
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musicflow_beat
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    env_file: .env
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── Flower (monitor visual de Celery) ────────────────────────────────────────
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: musicflow_flower
+    command: celery -A app.tasks.celery_app flower --port=5555
+    env_file: .env
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── Redis (cola + caché) ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: musicflow_redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: musicflow_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-musicflow}
+      POSTGRES_USER: ${POSTGRES_USER:-musicflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-musicflow_secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-musicflow}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ── pgAdmin (GUI para la base de datos) ──────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: musicflow_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@musicflow.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  music_files:

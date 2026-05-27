@@ -1,0 +1,195 @@
+/* ── Page header ── */
+.lib { max-width: 860px; }
+
+.lib-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.lib-title {
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  background: linear-gradient(135deg, var(--t1) 30%, var(--a3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.lib-sub { font-size: 14px; color: var(--t2); }
+.lib-refresh { height: 40px; padding: 0 16px; font-size: 13px; }
+
+/* ── Loading / Empty ── */
+.lib-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 72px 0;
+  color: var(--t2);
+  font-size: 14px;
+}
+.lib-empty {
+  text-align: center;
+  padding: 72px 0;
+}
+.lib-empty-ico { font-size: 44px; display: block; margin-bottom: 16px; }
+.lib-empty-title { font-size: 18px; font-weight: 700; color: var(--t1); margin-bottom: 8px; }
+.lib-empty-sub { font-size: 14px; color: var(--t2); }
+
+/* ── Song list ── */
+.lib-list { display: flex; flex-direction: column; gap: 6px; }
+
+.scard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: all 0.2s var(--ease);
+}
+.scard:hover {
+  background: var(--bg-3);
+  border-color: var(--border-bright);
+}
+.scard--playing {
+  background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(6,182,212,0.06));
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Track number */
+.scard-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--t3);
+  width: 24px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* Thumbnail */
+.scard-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--bg-4);
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scard-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scard-thumb-fallback {
+  color: var(--t3);
+  display: flex;
+}
+
+/* Info */
+.scard-info { flex: 1; min-width: 0; }
+.scard-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.scard-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--t3);
+  flex-wrap: wrap;
+}
+.dot { color: var(--t3); margin: 0 1px; opacity: 0.5; }
+
+.scard-player {
+  margin-top: 10px;
+  width: 100%;
+  height: 30px;
+}
+
+/* Actions */
+.scard-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Format badge */
+.fmt-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.fmt-badge--m4a   { background: rgba(124,58,237,0.18); color: #a78bfa; }
+.fmt-badge--mp3   { background: rgba(236,72,153,0.16); color: #f472b6; }
+.fmt-badge--eac3  { background: rgba(6,182,212,0.18);  color: #22d3ee; }
+.fmt-badge--ac3   { background: rgba(6,182,212,0.12);  color: #67e8f9; }
+.fmt-badge--opus  { background: rgba(16,185,129,0.15); color: #34d399; }
+.fmt-badge--best  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+/* Action buttons */
+.scard-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-4);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all 0.18s var(--ease);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.scard-btn:hover { background: var(--bg-5); color: var(--t1); border-color: var(--border-bright); }
+.scard-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.scard-btn--play:hover,
+.scard-btn--play.active {
+  background: var(--grad-brand);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-pink);
+}
+.scard-btn--del:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.3);
+  color: #f87171;
+}
+
+.spinning { animation: spin 0.9s linear infinite; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .scard { gap: 10px; padding: 10px 12px; }
+  .scard-num { display: none; }
+  .scard-thumb { width: 42px; height: 42px; }
+  .scard-title { font-size: 13px; }
+  .fmt-badge { display: none; }
+  .scard-actions { gap: 4px; }
+  .scard-btn { width: 30px; height: 30px; }
+}

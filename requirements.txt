@@ -1,0 +1,36 @@
+# ── Servidor web ────────────────────────────────────────────────────────────
+flask>=3.1.0
+flask-cors>=5.0.0
+gunicorn>=22.0.0            # Servidor WSGI para producción
+
+# ── Base de datos ────────────────────────────────────────────────────────────
+flask-sqlalchemy>=3.1.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9      # Driver PostgreSQL
+alembic>=1.13.0             # Migraciones de schema
+flask-migrate>=4.0.0        # Integración Alembic + Flask
+
+# ── Autenticación ────────────────────────────────────────────────────────────
+flask-jwt-extended>=4.6.0
+bcrypt>=4.1.0               # Hash de contraseñas
+
+# ── Cola de tareas ───────────────────────────────────────────────────────────
+celery>=5.4.0
+redis>=5.0.0
+flower>=2.0.0               # Monitor visual de Celery
+
+# ── Descarga de audio ────────────────────────────────────────────────────────
+yt-dlp>=2024.11.4
+
+# ── Procesamiento de audio y metadatos ──────────────────────────────────────
+mutagen>=1.47.0             # Lectura/escritura de tags ID3 y M4A
+
+# ── Procesamiento de imágenes ────────────────────────────────────────────────
+Pillow>=11.0.0              # Conversión de thumbnails webp → jpg
+
+# ── HTTP ─────────────────────────────────────────────────────────────────────
+requests>=2.32.0
+
+# ── Utilidades ───────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0        # Cargar variables de .env
+marshmallow>=3.22.0         # Validación y serialización de datos

@@ -1,0 +1,48 @@
+# Entorno y secretos
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Base de datos local
+*.db
+*.sqlite3
+
+# Archivos de audio generados
+static/musica/
+static/portadas/
+
+# Logs
+*.log
+logs/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Alembic
+alembic/versions/*.pyc
