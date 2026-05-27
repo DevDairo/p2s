@@ -1,8 +1,3 @@
-"""
-Instancia de Celery desacoplada de Flask.
-Los workers importan este módulo directamente, sin necesitar
-el contexto completo de Flask para arrancar.
-"""
 import os
 from celery import Celery
 
@@ -17,14 +12,13 @@ def make_celery() -> Celery:
         accept_content      = ["json"],
         timezone            = "UTC",
         task_track_started  = True,
-        task_acks_late      = True,         # ACK después de completar, no al recibir
-        worker_prefetch_multiplier = 1,     # Un task por worker a la vez (descargas son lentas)
+        task_acks_late      = True,
+        worker_prefetch_multiplier = 1,
         task_routes = {
             "app.tasks.download.*": {"queue": "downloads"},
             "app.tasks.cleanup.*":  {"queue": "celery"},
         },
         beat_schedule = {
-            # Limpiar archivos temporales huérfanos cada hora
             "cleanup-orphaned-files": {
                 "task": "app.tasks.cleanup.remove_orphaned_files",
                 "schedule": 3600.0,
@@ -35,3 +29,6 @@ def make_celery() -> Celery:
 
 
 celery_app = make_celery()
+
+# Import DESPUÉS de que celery_app está definido para evitar circular import
+from app.tasks import download  # noqa: E402, F401

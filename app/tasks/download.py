@@ -81,7 +81,7 @@ def _run_download(task, *, url, task_id, fmt, app):
     from app.models import Song, Task
     from app.extensions import db
     from app.services.metadata import process_cover, insert_metadata
-    from app.services.cleaner import clean_filename
+    from app.services.metadata import clean_filename
 
     music_dir = app.config["MUSIC_DIR"]
 
