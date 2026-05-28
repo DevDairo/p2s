@@ -1,13 +1,13 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { searchSongs, startDownload } from '../services/api.js'
 import DownloadProgress from '../components/DownloadProgress.jsx'
 import './SearchPage.css'
 
 const FORMATS = [
-  { id: 'm4a',   label: 'M4A',          desc: 'Alta calidad AAC' },
-  { id: 'mp3',   label: 'MP3',          desc: 'Máxima compatibilidad' },
-  { id: 'atmos', label: '🎧 Atmos',     desc: 'Dolby Atmos si disponible' },
-  { id: 'best',  label: '⭐ Mejor',     desc: 'Sin conversión' },
+  { id: 'm4a',   label: 'M4A',       desc: 'Alta calidad AAC' },
+  { id: 'mp3',   label: 'MP3',       desc: 'Máxima compatibilidad' },
+  { id: 'atmos', label: '🎧 Atmos',  desc: 'Dolby Atmos si disponible' },
+  { id: 'best',  label: '⭐ Mejor',  desc: 'Sin conversión' },
 ]
 
 export default function SearchPage({ onGoToLibrary }) {
@@ -17,21 +17,33 @@ export default function SearchPage({ onGoToLibrary }) {
   const [loading, setLoading] = useState(false)
   const [format,  setFormat]  = useState('m4a')
   const [tasks,   setTasks]   = useState([])
-  const inputRef = useRef(null)
+  const inputRef  = useRef(null)
+  const debounceRef = useRef(null)
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    const q = query.trim(); if (!q) return
-    setLoading(true); setResults([])
-    const data = await searchSongs(q)
-    setResults(data); setLoading(false)
-  }
+  // ── Búsqueda con debounce automático ──────────────────────────────────
+  const doSearch = useCallback(async (q) => {
+    if (!q.trim()) { setResults([]); return }
+    setLoading(true)
+    const data = await searchSongs(q.trim())
+    setResults(data)
+    setLoading(false)
+  }, [])
 
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    if (!query.trim()) { setResults([]); setLoading(false); return }
+    setLoading(true)
+    debounceRef.current = setTimeout(() => doSearch(query), 500)
+    return () => clearTimeout(debounceRef.current)
+  }, [query, doSearch])
+
+  // ── Descarga ──────────────────────────────────────────────────────────
   const enqueue = async ({ url, title, thumbnail }) => {
     const res = await startDownload(url, format)
     if (res.status === 'already_exists') {
       alert(`"${title}" ya está en tu biblioteca.`)
-      onGoToLibrary(); return
+      onGoToLibrary()
+      return
     }
     if (res.task_id) setTasks(p => [...p, { taskId: res.task_id, title, thumbnail }])
   }
@@ -52,8 +64,6 @@ export default function SearchPage({ onGoToLibrary }) {
 
   return (
     <div className="sp">
-
-      {/* ── Hero header ── */}
       <header className="sp-hero">
         <h1 className="sp-title">Descarga música</h1>
         <p className="sp-sub">Busca por nombre o pega un enlace de YouTube</p>
@@ -73,10 +83,12 @@ export default function SearchPage({ onGoToLibrary }) {
         ))}
       </div>
 
-      {/* ── Search input ── */}
-      <form className="sp-searchbar" onSubmit={handleSearch}>
+      {/* ── Search — dispara automáticamente ── */}
+      <div className="sp-searchbar">
         <div className="sbar-wrap">
-          <span className="sbar-ico"><SearchIco /></span>
+          <span className="sbar-ico">
+            {loading ? <span className="spin" style={{width:16,height:16}} /> : <SearchIco />}
+          </span>
           <input
             ref={inputRef}
             className="sbar-input"
@@ -84,17 +96,15 @@ export default function SearchPage({ onGoToLibrary }) {
             placeholder="Artista, canción o álbum…"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            autoFocus
           />
           {query && (
-            <button type="button" className="sbar-clear" onClick={() => { setQuery(''); inputRef.current?.focus() }}>
+            <button type="button" className="sbar-clear" onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus() }}>
               <XIco />
             </button>
           )}
         </div>
-        <button className="btn-primary" type="submit" disabled={loading || !query.trim()}>
-          {loading ? <span className="spin" /> : <><SearchIco /> Buscar</>}
-        </button>
-      </form>
+      </div>
 
       {/* ── URL input ── */}
       <form className="sp-urlbar" onSubmit={handleUrlSubmit}>
@@ -162,22 +172,12 @@ export default function SearchPage({ onGoToLibrary }) {
         </section>
       )}
 
-      {/* ── Empty state ── */}
-      {!loading && query && results.length === 0 && (
-        <div className="sp-empty">
-          <span className="sp-empty-ico"><SearchIco /></span>
-          <p>Sin resultados para <strong>"{query}"</strong></p>
-          <p className="sp-empty-hint">Prueba con otro término o pega la URL directamente.</p>
-        </div>
-      )}
-
-      {/* ── Welcome state ── */}
       {!loading && !query && results.length === 0 && tasks.length === 0 && (
         <div className="sp-welcome">
           <div className="sp-welcome-card">
             <span className="sp-welcome-ico">🎵</span>
             <p className="sp-welcome-title">Empieza buscando</p>
-            <p className="sp-welcome-sub">Encuentra cualquier canción, álbum o artista de YouTube y descárgala en alta calidad.</p>
+            <p className="sp-welcome-sub">Escribe el nombre de una canción o artista — los resultados aparecen al instante.</p>
           </div>
         </div>
       )}
@@ -185,7 +185,6 @@ export default function SearchPage({ onGoToLibrary }) {
   )
 }
 
-/* Icons */
 const SearchIco   = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
 const XIco        = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
 const LinkIco     = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>

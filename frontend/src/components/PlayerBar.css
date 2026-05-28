@@ -1,0 +1,205 @@
+.pbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border-bright);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 200;
+}
+
+/* ── Song info ── */
+.pbar-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pbar-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  background: var(--bg-4);
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pbar-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pbar-cover-fallback {
+  color: var(--t3);
+  display: flex;
+}
+
+.pbar-meta { min-width: 0; }
+.pbar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pbar-artist {
+  font-size: 11px;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* ── Center controls ── */
+.pbar-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pbar-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--t2);
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.15s, transform 0.1s;
+}
+.pbar-btn:hover { color: var(--t1); }
+.pbar-btn:active { transform: scale(0.9); }
+
+.pbar-btn--play {
+  width: 36px;
+  height: 36px;
+  background: var(--grad-brand);
+  color: #fff;
+  border-radius: 50%;
+  box-shadow: var(--shadow-pink);
+}
+.pbar-btn--play:hover { color: #fff; filter: brightness(1.1); }
+
+/* ── Progress bar ── */
+.pbar-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pbar-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--t3);
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ── Range input shared styles ── */
+.pbar-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--bg-5);
+  cursor: pointer;
+  outline: none;
+}
+.pbar-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--t1);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pbar-range:hover::-webkit-slider-thumb { transform: scale(1.3); }
+.pbar-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--t1);
+  border: none;
+  cursor: pointer;
+}
+/* Filled track using gradient trick */
+.pbar-range {
+  background: linear-gradient(
+    to right,
+    var(--a1) 0%,
+    var(--a1) var(--fill, 0%),
+    var(--bg-5) var(--fill, 0%),
+    var(--bg-5) 100%
+  );
+}
+
+/* ── Right: volume ── */
+.pbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  color: var(--t2);
+}
+
+.pbar-vol {
+  width: 80px;
+  flex: none;
+}
+
+.pbar-fmt {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(124,58,237,0.15);
+  color: #a78bfa;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .pbar {
+    grid-template-columns: 1fr auto;
+    height: 72px;
+    padding: 0 12px;
+    bottom: 64px;  /* encima del bottom nav */
+  }
+  .pbar-right { display: none; }
+  .pbar-center { flex-direction: row; gap: 10px; }
+  .pbar-progress { display: none; }
+}
+
+@media (max-width: 480px) {
+  .pbar-artist { display: none; }
+}

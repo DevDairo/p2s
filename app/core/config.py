@@ -34,7 +34,13 @@ class BaseConfig:
     JWT_REFRESH_TOKEN_EXPIRES   = timedelta(seconds=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 2592000)))
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    CORS_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
+    # Acepta localhost (dev) + cualquier IP de red local 192.168.x.x / 10.x.x.x
+    CORS_ORIGINS = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        r"http://192\.168\.\d+\.\d+:\d+",
+        r"http://10\.\d+\.\d+\.\d+:\d+",
+    ]
 
     # ── Admin ────────────────────────────────────────────────────────────────
     ADMIN_EMAIL    = os.getenv("ADMIN_EMAIL", "admin@musicflow.local")

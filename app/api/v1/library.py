@@ -57,13 +57,26 @@ def serve_file(filename: str):
 def serve_cover(filename: str):
     """
     Extrae y sirve la carátula incrustada en el archivo de audio.
+    Cachea en Redis 1 hora para evitar reextracción en cada request.
     """
+    import base64
     import mutagen
     from flask import Response, current_app
+    from app.extensions import redis_client
 
     base = filename.rsplit(".", 1)[0]
+    cache_key = f"cover:{base}"
 
-    # Buscar el archivo de audio en cualquier formato
+    # 1. Intentar caché Redis primero
+    try:
+        cached = redis_client.get(cache_key)
+        if cached:
+            return Response(base64.b64decode(cached), mimetype="image/jpeg",
+                            headers={"Cache-Control": "public, max-age=3600"})
+    except Exception:
+        pass
+
+    # 2. Extraer del archivo de audio
     for ext in ("mp3", "m4a", "eac3", "ac3", "opus", "webm"):
         audio_path = os.path.join(current_app.config["MUSIC_DIR"], f"{base}.{ext}")
         if os.path.exists(audio_path):
@@ -76,8 +89,15 @@ def serve_cover(filename: str):
         if audio and hasattr(audio, "tags") and audio.tags:
             for key in audio.tags:
                 if key.startswith("APIC"):
-                    return Response(audio.tags[key].data, mimetype="image/jpeg")
-    except Exception as e:
+                    data = audio.tags[key].data
+                    # Guardar en Redis en base64 (strings only), TTL 1 hora
+                    try:
+                        redis_client.setex(cache_key, 3600, base64.b64encode(data).decode())
+                    except Exception:
+                        pass
+                    return Response(data, mimetype="image/jpeg",
+                                    headers={"Cache-Control": "public, max-age=3600"})
+    except Exception:
         pass
 
     abort(404)

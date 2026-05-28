@@ -205,3 +205,14 @@
     padding: 24px 16px 84px; /* 84px = room for bottom nav */
   }
 }
+
+/* ── Espacio para PlayerBar ─────────────────────────────────────────────── */
+.content {
+  padding-bottom: 96px;   /* 80px playerbar + 16px margen */
+}
+
+@media (max-width: 680px) {
+  .content {
+    padding-bottom: 152px;  /* 72px playerbar + 64px bottomnav + 16px */
+  }
+}
