@@ -25,7 +25,13 @@ export async function fetchLibrary() {
   try {
     const res  = await fetch(`${BASE}/library`)
     const data = await res.json()
-    return data.songs || []
+    const origin = window.location.origin
+    const songs = (data.songs || []).map(song => ({
+      ...song,
+      audio_url: song.audio_url.replace(/^https?:\/\/[^/]+/, origin),
+      cover_url: song.cover_url.replace(/^https?:\/\/[^/]+/, origin),
+    }))
+    return songs
   } catch { return [] }
 }
 

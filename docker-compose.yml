@@ -15,7 +15,7 @@ services:
       - .:/app                          # Hot reload: cambios en código se reflejan al instante
       - music_files:/app/static/musica  # Archivos de audio persistentes
     ports:
-      - "5001:5001"
+      - "0.0.0.0:5001:5001"
     depends_on:
       db:
         condition: service_healthy

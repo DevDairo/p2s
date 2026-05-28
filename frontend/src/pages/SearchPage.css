@@ -234,6 +234,12 @@
 }
 .sp-welcome-sub { font-size: 14px; color: var(--t2); line-height: 1.6; }
 
+/* Toast slide-in */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .sp-searchbar, .sp-urlbar { flex-direction: column; gap: 8px; }

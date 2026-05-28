@@ -17,8 +17,15 @@ export default function SearchPage({ onGoToLibrary }) {
   const [loading, setLoading] = useState(false)
   const [format,  setFormat]  = useState('m4a')
   const [tasks,   setTasks]   = useState([])
+  const [toasts,  setToasts]  = useState([])
   const inputRef  = useRef(null)
   const debounceRef = useRef(null)
+
+  const addToast = (title) => {
+    const id = Date.now()
+    setToasts(p => [...p, { id, title }])
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 4000)
+  }
 
   // ── Búsqueda con debounce automático ──────────────────────────────────
   const doSearch = useCallback(async (q) => {
@@ -42,7 +49,6 @@ export default function SearchPage({ onGoToLibrary }) {
     const res = await startDownload(url, format)
     if (res.status === 'already_exists') {
       alert(`"${title}" ya está en tu biblioteca.`)
-      onGoToLibrary()
       return
     }
     if (res.task_id) setTasks(p => [...p, { taskId: res.task_id, title, thumbnail }])
@@ -64,6 +70,33 @@ export default function SearchPage({ onGoToLibrary }) {
 
   return (
     <div className="sp">
+      {/* ── Toasts ── */}
+      <div style={{
+        position: 'fixed', top: 16, left: 16, zIndex: 9999,
+        display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none',
+      }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            background: 'var(--bg-3)',
+            border: '1px solid rgba(16,185,129,0.4)',
+            borderRadius: 'var(--r-md)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: 'var(--shadow-md)',
+            animation: 'slideIn 0.3s var(--ease)',
+            maxWidth: 320,
+          }}>
+            <span style={{ color: '#34d399', display: 'flex', flexShrink: 0 }}><CheckIco /></span>
+            <span style={{
+              fontSize: 13, color: 'var(--t1)', fontWeight: 500,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{t.title}</span>
+          </div>
+        ))}
+      </div>
+
       <header className="sp-hero">
         <h1 className="sp-title">Descarga música</h1>
         <p className="sp-sub">Busca por nombre o pega un enlace de YouTube</p>
@@ -123,7 +156,7 @@ export default function SearchPage({ onGoToLibrary }) {
         </button>
       </form>
 
-      {/* ── Active downloads ── */}
+      {/* ── Active downloads — siempre visibles, no se desmontan ── */}
       {tasks.length > 0 && (
         <section className="sp-section">
           <p className="section-label">Descargando ahora</p>
@@ -134,7 +167,10 @@ export default function SearchPage({ onGoToLibrary }) {
                 taskId={t.taskId}
                 title={t.title}
                 thumbnail={t.thumbnail}
-                onDone={() => { setTimeout(() => removeTask(t.taskId), 3500); onGoToLibrary() }}
+                onDone={() => {
+                  addToast(t.title)
+                  setTimeout(() => removeTask(t.taskId), 3500)
+                }}
                 onError={() => setTimeout(() => removeTask(t.taskId), 6000)}
               />
             ))}
@@ -185,6 +221,7 @@ export default function SearchPage({ onGoToLibrary }) {
   )
 }
 
+const CheckIco    = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
 const SearchIco   = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
 const XIco        = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
 const LinkIco     = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>

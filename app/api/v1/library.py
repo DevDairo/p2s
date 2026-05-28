@@ -12,7 +12,7 @@ def library():
     Lista todas las canciones descargadas, ordenadas por fecha (más reciente primero).
 
     Respuesta 200:
-        { "songs": [ { id, title, artist, mp3_url, cover_url, format, duration, … }, … ] }
+        { "songs": [ { id, title, artist, audio_url, cover_url, format, duration, … }, … ] }
     """
     songs = Song.query.order_by(Song.created_at.desc()).all()
     results = []
@@ -20,8 +20,10 @@ def library():
     for song in songs:
         data = song.to_dict()
         filename = os.path.basename(song.file_path)
+        base = filename.rsplit(".", 1)[0]
         data["audio_url"] = url_for("library.serve_file", filename=filename, _external=True)
-        data["cover_url"] = url_for("library.serve_cover", filename=filename, _external=True)
+        # Apunta a /covers/<base>.jpg — el endpoint lo sirve desde disco o lo extrae de los tags
+        data["cover_url"] = url_for("library.serve_cover", filename=f"{base}.jpg", _external=True)
         results.append(data)
 
     return jsonify({"songs": results, "total": len(results)})
@@ -31,9 +33,11 @@ def library():
 def serve_file(filename: str):
     """
     Sirve un archivo de audio.
+    Con ?dl=1 responde con Content-Disposition: attachment para forzar descarga local.
     Soporta Range requests (necesario para streaming en móvil y navegadores).
     """
-    from flask import current_app
+    from flask import current_app, request
+
     file_path = os.path.join(current_app.config["MUSIC_DIR"], filename)
 
     if not os.path.exists(file_path):
@@ -49,15 +53,25 @@ def serve_file(filename: str):
         "webm": "audio/webm",
     }
     mimetype = mimetypes.get(ext, "audio/mpeg")
+    as_attachment = request.args.get("dl") == "1"
 
-    return send_file(file_path, mimetype=mimetype, conditional=True)
+    return send_file(
+        file_path,
+        mimetype=mimetype,
+        conditional=True,
+        as_attachment=as_attachment,
+        download_name=filename if as_attachment else None,
+    )
 
 
 @library_bp.get("/covers/<path:filename>")
 def serve_cover(filename: str):
     """
-    Extrae y sirve la carátula incrustada en el archivo de audio.
-    Cachea en Redis 1 hora para evitar reextracción en cada request.
+    Sirve la carátula de una canción.
+    Orden de búsqueda:
+      1. Caché Redis
+      2. Archivo físico en /portadas
+      3. Extracción de los tags del audio (y persistencia en /portadas + Redis)
     """
     import base64
     import mutagen
@@ -67,36 +81,77 @@ def serve_cover(filename: str):
     base = filename.rsplit(".", 1)[0]
     cache_key = f"cover:{base}"
 
-    # 1. Intentar caché Redis primero
+    # 1. Caché Redis
     try:
         cached = redis_client.get(cache_key)
         if cached:
-            return Response(base64.b64decode(cached), mimetype="image/jpeg",
-                            headers={"Cache-Control": "public, max-age=3600"})
+            return Response(
+                base64.b64decode(cached),
+                mimetype="image/jpeg",
+                headers={"Cache-Control": "public, max-age=3600"},
+            )
     except Exception:
         pass
 
-    # 2. Extraer del archivo de audio
+    # 2. Archivo físico en /portadas
+    covers_dir = current_app.config["COVERS_DIR"]
+    cover_path = os.path.join(covers_dir, filename)
+    if os.path.exists(cover_path):
+        with open(cover_path, "rb") as f:
+            data = f.read()
+        try:
+            redis_client.setex(cache_key, 3600, base64.b64encode(data).decode())
+        except Exception:
+            pass
+        return Response(
+            data,
+            mimetype="image/jpeg",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    # 3. Extraer de los tags del archivo de audio y persistir
+    music_dir = current_app.config["MUSIC_DIR"]
+    audio_path = None
     for ext in ("mp3", "m4a", "eac3", "ac3", "opus", "webm"):
-        audio_path = os.path.join(current_app.config["MUSIC_DIR"], f"{base}.{ext}")
-        if os.path.exists(audio_path):
+        candidate = os.path.join(music_dir, f"{base}.{ext}")
+        if os.path.exists(candidate):
+            audio_path = candidate
             break
-    else:
+
+    if not audio_path:
         abort(404)
 
     try:
         audio = mutagen.File(audio_path)
         if audio and hasattr(audio, "tags") and audio.tags:
+            img_data = None
+
+            # ID3 (MP3, EAC3, etc.)
             for key in audio.tags:
                 if key.startswith("APIC"):
-                    data = audio.tags[key].data
-                    # Guardar en Redis en base64 (strings only), TTL 1 hora
-                    try:
-                        redis_client.setex(cache_key, 3600, base64.b64encode(data).decode())
-                    except Exception:
-                        pass
-                    return Response(data, mimetype="image/jpeg",
-                                    headers={"Cache-Control": "public, max-age=3600"})
+                    img_data = audio.tags[key].data
+                    break
+
+            # MP4 (M4A)
+            if img_data is None and "covr" in audio.tags:
+                covers = audio.tags["covr"]
+                if covers:
+                    img_data = bytes(covers[0])
+
+            if img_data:
+                # Persistir en /portadas para requests futuras
+                os.makedirs(covers_dir, exist_ok=True)
+                with open(cover_path, "wb") as f:
+                    f.write(img_data)
+                try:
+                    redis_client.setex(cache_key, 3600, base64.b64encode(img_data).decode())
+                except Exception:
+                    pass
+                return Response(
+                    img_data,
+                    mimetype="image/jpeg",
+                    headers={"Cache-Control": "public, max-age=3600"},
+                )
     except Exception:
         pass
 
@@ -106,15 +161,34 @@ def serve_cover(filename: str):
 @library_bp.delete("/library/<int:song_id>")
 def delete_song(song_id: int):
     """
-    Elimina una canción de la biblioteca (BD + archivo físico).
+    Elimina una canción de la biblioteca (BD + archivo de audio + portada).
     """
-    from app.extensions import db
+    from app.extensions import db, redis_client
+    from flask import current_app
 
     song = Song.query.get_or_404(song_id)
+    base = os.path.basename(song.file_path).rsplit(".", 1)[0]
 
-    # Eliminar archivo físico
-    if os.path.exists(song.file_path):
+    # Eliminar archivo de audio
+    if song.file_path and os.path.exists(song.file_path):
         os.remove(song.file_path)
+
+    # Eliminar portada — primero por cover_path guardado, luego por convención de nombre
+    cover_deleted = False
+    if song.cover_path and os.path.exists(song.cover_path):
+        os.remove(song.cover_path)
+        cover_deleted = True
+
+    if not cover_deleted:
+        cover_path = os.path.join(current_app.config["COVERS_DIR"], f"{base}.jpg")
+        if os.path.exists(cover_path):
+            os.remove(cover_path)
+
+    # Limpiar caché Redis
+    try:
+        redis_client.delete(f"cover:{base}")
+    except Exception:
+        pass
 
     db.session.delete(song)
     db.session.commit()

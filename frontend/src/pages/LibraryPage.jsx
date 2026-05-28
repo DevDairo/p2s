@@ -132,10 +132,11 @@ export default function LibraryPage() {
                   {isPlaying(song) ? <PauseIco /> : <PlayIco />}
                 </button>
 
+                {/* ?dl=1 → backend responde con Content-Disposition: attachment */}
                 <a
                   className="scard-btn"
-                  href={song.audio_url}
-                  download
+                  href={`${song.audio_url}?dl=1`}
+                  download={`${song.title}.${song.format}`}
                   aria-label="Descargar archivo"
                 >
                   <DownIco />

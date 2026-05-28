@@ -17,8 +17,8 @@ build/
 *.sqlite3
 
 # Archivos de audio generados
-static/musica/
-static/portadas/
+app/static/musica/
+app/static/portadas/
 
 # Logs
 *.log

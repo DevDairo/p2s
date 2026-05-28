@@ -81,13 +81,13 @@ def insert_metadata(audio_path: str, cover_path: str | None,
         print(f"[!] Error insertando metadatos: {e}")
         return False
     finally:
-        # Limpiar archivos temporales
+        # Limpiar solo temporales WebP y PNG — el JPG de portada se conserva en /portadas
         for tmp in [audio_path.rsplit(".", 1)[0] + ".webp",
                     audio_path.rsplit(".", 1)[0] + ".png"]:
             if os.path.exists(tmp):
                 os.remove(tmp)
-        if cover_path and os.path.exists(cover_path):
-            os.remove(cover_path)
+        # NOTA: NO borrar cover_path aquí — debe persistir en /portadas
+        # para que serve_cover() lo sirva sin re-extraer de los tags.
 
 
 def _insert_id3(path: str, cover_path: str | None, title: str, info: dict) -> bool:

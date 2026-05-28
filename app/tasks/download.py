@@ -146,10 +146,14 @@ def _run(task, *, url, task_id, fmt, flask_app):
 
     # 5. Carátula + metadatos
     update("processing", "Procesando carátula…", 100)
-    cover = process_cover({"title": title, "webp": f"{base_path}.webp", "info_dict": info})
+    cover_path = process_cover({
+        "title":    title,
+        "webp":     f"{base_path}.webp",
+        "info_dict": info,
+    })
 
     update("processing", "Insertando metadatos…", 100)
-    insert_metadata(out_path, cover, title, info)
+    insert_metadata(out_path, cover_path, title, info)
 
     # 6. Guardar en BD
     existing = Song.query.filter_by(youtube_url=url).first()
@@ -162,6 +166,7 @@ def _run(task, *, url, task_id, fmt, flask_app):
             youtube_url=url,
             youtube_id=info.get("id"),
             file_path=out_path,
+            cover_path=cover_path,   # ruta física en /portadas
             format=ext,
             duration=info.get("duration"),
             file_size=os.path.getsize(out_path) if os.path.exists(out_path) else None,
@@ -170,6 +175,9 @@ def _run(task, *, url, task_id, fmt, flask_app):
         db.session.flush()
         song_id = song.id
     else:
+        # Actualizar cover_path si no estaba guardado
+        if cover_path and not existing.cover_path:
+            existing.cover_path = cover_path
         song_id = existing.id
 
     t = Task.query.get(task_id)

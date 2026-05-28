@@ -58,6 +58,7 @@ class Song(db.Model):
     youtube_url = db.Column(db.String(500), nullable=False, unique=True, index=True)
     youtube_id  = db.Column(db.String(20), index=True)
     file_path   = db.Column(db.String(500), nullable=False)
+    cover_path  = db.Column(db.String(500), nullable=True)   # ruta física en /portadas
     format      = db.Column(db.String(10), nullable=False, default="m4a")
     # formatos: "m4a", "mp3", "eac3" (Dolby Atmos), "ac3"
     quality     = db.Column(db.String(10))
