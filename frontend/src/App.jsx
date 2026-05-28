@@ -28,7 +28,7 @@ export default function App() {
           <div className="brand-icon">
             <WaveIcon />
           </div>
-          <span className="brand-name">MusicFlow</span>
+          <span className="brand-name">FreeSong</span>
         </div>
 
         <nav className="sidenav">
